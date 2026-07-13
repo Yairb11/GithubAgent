@@ -193,6 +193,14 @@ def run_full_agent(user_prompt:str, thinking_signal:pyqtSignal = None, processin
     show_text("✨ Finished! Check ANSWER.md for the complete evaluation.", processing_signal, True)
     return synthesizer_report
 
+def get_prompts_list():
+    return [
+        "prompts\global_restrictions.txt",
+        "prompts\planner_agent.txt",
+        "prompts\synthesizer_agent.txt",
+        "prompts\worker_agent.txt",
+    ]
+
 def get_models_name():
     return os.getenv("MODEL")
 
