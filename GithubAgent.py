@@ -14,6 +14,15 @@ SYNTHESIZER_PROMPT = get_promot("synthesizer_agent")
 GLOBAL_PROMPT = get_promot("global_restrictions")
 
 def show_text(text, signal:pyqtSignal = None, override = False):
+    """Show the text in the right format in the right place.
+    if you connect this to my ui, it would show the correct things in the correct QWidgets
+    if not, it would print you in the terminal
+
+    Args:
+        text (str): text
+        signal (pyqtSignal, optional): connection to my ui. Defaults to None.
+        override (bool, optional): if it prints it in the terminal, should it start new line or not. Defaults to False.
+    """
     if not signal:
         if override:
             print(text)
@@ -22,7 +31,22 @@ def show_text(text, signal:pyqtSignal = None, override = False):
         return
     signal.emit(text)
 
-def planner_agent(user_input, thinking_signal = None):
+def planner_agent(user_input, thinking_signal:pyqtSignal = None):
+    """Planner agent, agent that gets its system prompt and users input prompt and with reasoning and the right tools
+    decides how to create the ultimate plan for the worker agents so in the end the user will get what he ask to
+
+    This function gets user_input with the restrictions prompt, (And if the UI connected then thinking signal from the ui)
+    it connects with the right tools, and runs the right LLM using langchain_ollama.
+    It streams the thought process of the agent, verifies that every tool has been done correctly
+    and in the end returns plan list to preform users input task.
+
+    Args:
+        user_input (string): Users prompt + restrictions prompt
+        thinking_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+
+    Returns:
+        list: list of the plan
+    """
     planner_tools = [list_repositories, check_repo_visibility, list_branches]
     planner_llm = ChatOllama(
         model=os.getenv("MODEL"), 
@@ -99,7 +123,23 @@ def planner_agent(user_input, thinking_signal = None):
         return True, None
     return False, execution_plan      
 
-def workers_agent(execution_plan, thinking_signal = None, processing_signal = None):
+def workers_agent(execution_plan, thinking_signal:pyqtSignal = None, processing_signal:pyqtSignal = None):
+    """Worker agent, gets one plan prompt, worker system prompt and tools that he can access to, 
+    then he runs to create the right answer for this plan.
+    
+    This function gets list of execution plan, (And if the UI connected then thinking signal and processing signal from the ui)
+    for each plan he creates worker agent that gets connected to the right tools, prompt input and llm and runs it
+    It streams the thought expiriance of the agent, verifies that every tool has been done correctly
+    and in the end returns list of each worker notes.
+
+    Args:
+        execution_plan (list): plan list
+        thinking_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+        processing_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+
+    Returns:
+        list: list of workers notes
+    """
     worker_notes = []
     worker_llm = ChatOllama(
         model=os.getenv("MODEL"), 
@@ -148,7 +188,24 @@ def workers_agent(execution_plan, thinking_signal = None, processing_signal = No
         worker_notes.append(f"### Insights for {repo_name}\n{worker_res_content}\n")
     return worker_notes
 
-def synthesizer_agent(user_prompt, worker_notes, thinking_signal = None, outputing_signal = None):
+def synthesizer_agent(user_prompt, worker_notes, thinking_signal:pyqtSignal = None, outputing_signal:pyqtSignal = None):
+    """Synthesize agent gets users prompt with restrictions prompt, with addition to all worker agents notes and run full reasoning behind
+    how to answer to the user with so the user would be satisfied by the answer
+    
+    This function gets users prompt with restrictions prompt, with addition to all worker agents notes  (And if the UI connected then thinking signal and outputing_signal from the ui)
+    It then runs this agent with the right LLM using langchain, shows the stream output of this agent thought process
+    and returns his answer to users task
+    
+
+    Args:
+        user_prompt (string): users prompt with restrictions prompt
+        worker_notes (list): list of all worker agents notes
+        thinking_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+        outputing_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+
+    Returns:
+        string: output of the synthesizer agent
+    """
     synthesizer_llm = ChatOllama(
         model=os.getenv("MODEL"), 
         reasoning=True,
@@ -172,6 +229,23 @@ def synthesizer_agent(user_prompt, worker_notes, thinking_signal = None, outputi
     return synthesizer_report
    
 def run_full_agent(user_prompt:str, thinking_signal:pyqtSignal = None, processing_signal:pyqtSignal = None, outputing_signal:pyqtSignal = None):
+    """This function runs the full agentflow, from the planner to the worker and in the end the synthesizer
+    each time it shows in what step in the process it is in (for the user)
+    if the planner agent sees that he cant build plan for this request, he stops this process before getting into the other agents
+    
+
+    Args:
+        user_prompt (str): user request
+        thinking_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+        processing_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+        outputing_signal (pyqtSignal, optional): Connection to the UI. Defaults to None.
+
+    Raises:
+        Exception: planner agent sees that he cant build plan for this request
+
+    Returns:
+        string: output of the agent
+    """
     # --- Planner ---
     show_text("🚀 Step 1: Running Planner Agent to discover targets...", processing_signal, True)
     show_text("🚀 Step 1: Running Planner Agent to discover targets...\n", thinking_signal, False)
@@ -189,25 +263,38 @@ def run_full_agent(user_prompt:str, thinking_signal:pyqtSignal = None, processin
     show_text("\n✍️ Step 3: Synthesizer Agent compiling final Markdown document...\n", thinking_signal, False)
     synthesizer_report = synthesizer_agent(user_prompt + "\n" + GLOBAL_PROMPT, worker_notes, thinking_signal, outputing_signal)
     
-    # --- Saving ---
+    # --- Finished ---
     show_text("✨ Finished! Check ANSWER.md for the complete evaluation.", processing_signal, True)
     return synthesizer_report
 
 def get_prompts_list():
+    """Returns list of all local paths to each prompt used in this agent
+    for my UI
+
+    Returns:
+        list: all local paths to each prompt used in this agent
+    """
     return [
-        "prompts\global_restrictions.txt",
-        "prompts\planner_agent.txt",
-        "prompts\synthesizer_agent.txt",
-        "prompts\worker_agent.txt",
+        r"prompts\global_restrictions.txt",
+        r"prompts\planner_agent.txt",
+        r"prompts\synthesizer_agent.txt",
+        r"prompts\worker_agent.txt",
     ]
 
 def get_models_name():
+    """Return models name used in this agent
+    for my UI
+
+    Returns:
+        str: models name
+    """
     return os.getenv("MODEL")
 
 if __name__ == "__main__":
+    """If this agent is called directly as a standalone script"""
     user_input = str(input("Enter your input: "))
     print(f"Model: {os.getenv('MODEL')}")
-    synthesizer_report = run_full_agent(user_input)#"Summarize my 'raytracer' repository and give it a score based on its architecture.")
+    synthesizer_report = run_full_agent(user_input)
     with open("ANSWER.md", "w", encoding="utf-8") as file:
         file.write(synthesizer_report)
     

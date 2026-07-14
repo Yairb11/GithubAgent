@@ -140,4 +140,3 @@ def delete_all_repository_folders(dummy_input: str = "") -> str:
             except Exception as e:
                 return f"Could not delete file {f}"
     return "RECEIPT: FOLDERS_DELETED_SUCCESSFULLY"
-    
