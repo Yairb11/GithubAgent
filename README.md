@@ -26,20 +26,15 @@ This project is a local, multi-agent GitHub AI assistant built using LangChain a
 * `.env`: Configuration file storing the required GIT_HUB_TOKEN and the target local MODEL name
 
 ## Setup & Installation
-### 1.  Environment Variables
-To allow the agent to interface with your GitHub account and know which local model to use, you must create a `.env` ile in the root directory of the project. Include the following two parameters:
-```
-GIT_HUB_TOKEN=your_github_personal_access_token_here
-MODEL=qwen3.5:latest(recommended)
-```
-### 2. Inststall Libraries
+
+### 1. Inststall Libraries
 Ensure you have Python installed on your machine. Then, install the required packages using the provided requirements file:
 ```Bash
 pip install -r requirements.txt
 ```
-### 3. Setup Ollama & Local LLM
+### 2. Setup Ollama & Local LLM
 This agent relies entirely on a local Large Language Model to power its reasoning and multi-agent workflow.
-* **Download Ollama**: Install Ollama on your machine if you haven't already.
+* **Download Ollama**: Install Ollama on your machine if you haven't already. Use this link: https://ollama.com/search
 * **Install a Reasoning Model**: Open your terminal and pull a local model capable of strong reasoning. I am highly recommending `qwen3.5:latest` Model for this project. Use this following command:
 ```Bash
 ollama run qwen3.5:latest
@@ -48,7 +43,22 @@ ollama run qwen3.5:latest
 
 * **Verify Operation**: Before executing the GitHub Agent, you must ensure that the Ollama service is actively running in the background on your computer and that the model successfully responds to standard terminal prompts
 
-### 4. Run the Agent
+### 3. Get Fine-Graind Personal Access Token
+For this agent and his tools, you would need **Personal Access Token** that you would get from this link: https://github.com/settings/personal-access-tokens
+1. **Create New Token**
+2. **Give him Name and Description**
+3. **Give him Expiration Date**
+4. **Give him Repository -> Access All Repositories**
+5. **Permissions -> Add Permissions -> Contents -> Read Only** 
+
+### 4.  Environment Variables
+To allow the agent to interface with your GitHub account and know which local model to use, you must create a `.env` ile in the root directory of the project. Include the following two parameters:
+```
+GIT_HUB_TOKEN=your_github_personal_access_token_here
+MODEL=qwen3.5:latest(recommended)
+```
+
+### 5. Run the Agent
 Once the environment variables are configured, dependencies are installed, and your local model is actively running, you can start the project from your terminal:
 ```Bash
 pytohn GithubAgent.py
