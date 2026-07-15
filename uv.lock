@@ -273,6 +273,7 @@ dependencies = [
     { name = "langchain-ollama" },
     { name = "pygithub" },
     { name = "pyqt6" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -284,6 +285,7 @@ requires-dist = [
     { name = "langchain-ollama", specifier = ">=1.1.0" },
     { name = "pygithub", specifier = ">=2.9.1" },
     { name = "pyqt6", specifier = ">=6.11.0" },
+    { name = "requests", specifier = ">=2.34.2" },
 ]
 
 [[package]]

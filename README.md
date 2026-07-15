@@ -50,6 +50,8 @@ For this agent and his tools, you would need **Personal Access Token** that you 
 3. **Give him Expiration Date**
 4. **Give him Repository -> Access All Repositories**
 5. **Permissions -> Add Permissions -> Contents -> Read Only** 
+6. **Generate Token**
+7. **Copy *github_path* Key**
 
 ### 4.  Environment Variables
 To allow the agent to interface with your GitHub account and know which local model to use, you must create a `.env` ile in the root directory of the project. Include the following two parameters:

@@ -47,7 +47,7 @@ def planner_agent(user_input, thinking_signal:pyqtSignal = None):
     Returns:
         list: list of the plan
     """
-    planner_tools = [list_repositories, check_repo_visibility, list_branches]
+    planner_tools = [list_repositories, check_repo_visibility, list_branches, list_repo_files]
     planner_llm = ChatOllama(
         model=os.getenv("MODEL"), 
         reasoning=True,
@@ -140,19 +140,24 @@ def workers_agent(execution_plan, thinking_signal:pyqtSignal = None, processing_
     Returns:
         list: list of workers notes
     """
+    worker_token_budget = max(300 ,int(6000 / len(execution_plan)))
     worker_notes = []
     worker_llm = ChatOllama(
         model=os.getenv("MODEL"), 
         reasoning=False,
         repeat_penalty=1.15,
         temperature=0.2,      
-        num_predict=300     
+        num_predict=worker_token_budget,
+        num_ctx = 8192     
     )
 
     for index, task in enumerate(execution_plan):
         repo_name = task.get("repo")
         action = task.get("action")
         mode = task.get("mode", "shallow")
+        instruction = task.get("instruction", "Summarize the architecture and strengths/weaknesses.")
+        target_files = task.get("target_files", " ")
+        
         show_text(f"🔄 Step 2.[{index + 1}]: Processing {repo_name} ({action})...", processing_signal, True)
         show_text(f"\n🔄 Step 2.[{index + 1}]: Processing {repo_name} ({action})...", thinking_signal, False)
         show_text(f"\n  📥 Cloning {repo_name}...", thinking_signal, False)
@@ -165,11 +170,12 @@ def workers_agent(execution_plan, thinking_signal:pyqtSignal = None, processing_
         local_path = clone_res.split("'")[1]
         analysis_data = summarize_and_analyzes_cloned_repo.invoke({
             "repo_clone_folder": local_path, 
-            "mode": mode
+            "mode": mode,
+            "target_files": target_files
         })
         
         show_text(f"\n  🧠 Worker Agent analyzing codebase...\n", thinking_signal, False)
-        worker_instruction = f"Perform action '{action}' on this repository: '{repo_name}'. Here is the packed codebase data:\n\n{analysis_data}"
+        worker_instruction = f"INSTRUCTION: {instruction}\n\nExecute this instruction on the following codebase data:\n\n{analysis_data}"
         worker_message = [
             SystemMessage(content=WORKER_PROMPT),
             HumanMessage(content=worker_instruction)

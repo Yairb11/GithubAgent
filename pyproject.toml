@@ -12,4 +12,5 @@ dependencies = [
     "langchain-ollama>=1.1.0",
     "pygithub>=2.9.1",
     "pyqt6>=6.11.0",
+    "requests>=2.34.2",
 ]

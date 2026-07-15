@@ -3,6 +3,7 @@ from github import Github, Auth
 from dotenv import load_dotenv
 from uuid import uuid4
 import subprocess
+import requests
 import git
 import os
 import shutil
@@ -25,14 +26,16 @@ AUTO = Auth.Token(GIT_KEY)
 @tool
 def list_repositories(dummy_input: str = "") -> str:
     """Fetches a list of all public and private repository names owned by the authenticated user.
-    This tool requires NO real input. If prompted for an input, pass an empty string."""
+    This tool requires NO real input. If prompted for an input, pass an empty string.
+    """
     g = Github(auth=AUTO)
     repos = [repo.full_name for repo in g.get_user().get_repos(type="owner")]
     return f"Repositories found: {', '.join(repos)}"
 
 @tool
 def list_branches(repo_name: str) -> str:
-    """Fetches all branch names for a specific repository. Input MUST be formatted as 'username/repo-name'."""
+    """Fetches all branch names for a specific repository. Input MUST be formatted as 'username/repo-name'.
+      You MUST run this tool before using list_repo_files to find out if the branch is 'main' or 'master'."""
     g = Github(auth=AUTO)
     try:
         repo = g.get_repo(repo_name)
@@ -40,6 +43,34 @@ def list_branches(repo_name: str) -> str:
         return f"Branches for {repo_name}: {', '.join(branches)}"
     except Exception as e:
         return f"Error finding repository {str(e)}"
+    
+@tool
+def list_repo_files(repo_name: str, branch: str) -> str:
+    """
+    STRICT RESTRICTION: DO NOT USE THIS TOOL FOR GENERAL SUMMARIES.
+    Only use this if the user asks for a specific file (e.g., 'README.md' or 'tools.py').
+    You MUST provide the exact branch name (e.g., 'main' or 'master') discovered from list_branches.
+    """
+    headers = {
+        "Authorization": f"token {GIT_KEY}",
+        "Accept": "application/vnd.github.v3+json"
+    } if GIT_KEY else {}
+    url = f"https://api.github.com/repos/{repo_name}/git/trees/{branch}?recursive=1"
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 404 and branch == "main":
+            url = f"https://api.github.com/repos/{repo_name}/git/trees/master?recursive=1"
+            response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        tree = response.json().get("tree", [])
+        file_paths = [item["path"] for item in tree if item["type"] == "blob"]
+        if not file_paths:
+            return f"No files found in {repo_name}."
+        
+        return f"Repository {repo_name}\nFiles:{"\n".join(file_paths)}"
+    except Exception as e:
+        return f"Error fetching file tree for {repo_name}: {str(e)}"
+ 
 
 @tool
 def check_repo_visibility(repo_name: str) -> str:
@@ -79,20 +110,23 @@ def clone_repository(repo_url_or_name: str = "") -> str:
         return f"Error cloning repository: {str(e)}"
     
 @tool
-def summarize_and_analyzes_cloned_repo(repo_clone_folder: str, mode: str = "deep") -> str:
+def summarize_and_analyzes_cloned_repo(repo_clone_folder: str, mode: str = "deep", target_files: str = " ") -> str:
     """
-    Analyzes a locally cloned repository directory.
+    Analyzes a cloned repo. Mode can be 'shallow' or 'deep'.
     and generates packed summary of the entire codebase
     Input must be the local directory path of the cloned repository.
     """
     if not os.path.exists(repo_clone_folder) or not os.path.isdir(repo_clone_folder):
         return f"Error: Directory '{repo_clone_folder}' does not exist."
     
+    cmd = ["npx", "-y", "repomix@latest"]
+    
     try:
-        if mode == "shallow":
+        if target_files != " ":
+            cmd.extend(["--include", target_files])
+        elif mode == "shallow":
             cmd = NPX_SHALLOW_COMMAND
-        else:
-            cmd = NPX_COMMAND
+
         result = subprocess.run(
             cmd,
             cwd=repo_clone_folder,
@@ -122,7 +156,9 @@ def summarize_and_analyzes_cloned_repo(repo_clone_folder: str, mode: str = "deep
         return "Error: Repomix took too long to execute and was killed."
     except Exception as e:
         return f"System error executing repomix: {str(e)}"
-    
+  
+       
+  
 @tool
 def delete_all_repository_folders(dummy_input: str = "") -> str:
     """
