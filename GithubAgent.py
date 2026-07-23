@@ -13,24 +13,6 @@ WORKER_PROMPT = get_promot("worker_agent")
 SYNTHESIZER_PROMPT = get_promot("synthesizer_agent")
 GLOBAL_PROMPT = get_promot("global_restrictions")
 
-def show_text(text, signal:pyqtSignal = None, override = False):
-    """Show the text in the right format in the right place.
-    if you connect this to my ui, it would show the correct things in the correct QWidgets
-    if not, it would print you in the terminal
-
-    Args:
-        text (str): text
-        signal (pyqtSignal, optional): connection to my ui. Defaults to None.
-        override (bool, optional): if it prints it in the terminal, should it start new line or not. Defaults to False.
-    """
-    if not signal:
-        if override:
-            print(text)
-            return
-        print(text, end="", flush=True)
-        return
-    signal.emit(text)
-
 def planner_agent(user_input, thinking_signal:pyqtSignal = None):
     """Planner agent, agent that gets its system prompt and users input prompt and with reasoning and the right tools
     decides how to create the ultimate plan for the worker agents so in the end the user will get what he ask to
