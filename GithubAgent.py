@@ -6,7 +6,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, AIMessage
 from tools import *
 from Helper import *
-load_dotenv()
+load_dotenv(override=True)
 
 PLANNER_PROMPT = get_promot("planner_agent")
 WORKER_PROMPT = get_promot("worker_agent")
